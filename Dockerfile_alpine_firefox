@@ -1,0 +1,26 @@
+FROM alpine:3.18.5
+
+# for firefox
+# RUN apk add http://dl-cdn.alpinelinux.org/alpine/edge/community
+
+# RUN apk add firefox-esr
+
+# RUN apk update
+
+RUN echo @latest https://dl-cdn.alpinelinux.org/alpine/latest-stable/main >> /etc/apk/repositories &&     echo @latest https://dl-cdn.alpinelinux.org/alpine/latest-stable/community >> /etc/apk/repositories &&     echo @14.20.1 https://dl-cdn.alpinelinux.org/alpine/v3.14/main >> /etc/apk/repositories
+
+# Install dependencies
+RUN apk --no-cache --update add     libsrt@latest     chromium@latest     firefox@latest
+
+
+RUN adduser -D -g users user
+RUN mkdir -p /home/user 	&& chown user:users /home/user
+
+RUN apk update 	&& apk add --no-cache --update xvfb x11vnc fluxbox xdpyinfo st vim terminus-font xterm xeyes htop sudo 	&& sed -r -i "s/\[exec\] \(xterm\) \{xterm\}/\[exec\] \(st\) \{st -f 'xos4 Terminus-14'\}/" /usr/share/fluxbox/menu 	&& mkdir -p /opt 	&& rm -vrf /var/cache/apk/*
+
+COPY bootstrap.sh /opt
+
+USER user
+ENV HOME /home/user
+WORKDIR /home/user
+CMD ["sh","/opt/bootstrap.sh"]
