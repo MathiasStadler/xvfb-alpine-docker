@@ -1,0 +1,55 @@
+FROM alpine:3.18.5
+
+RUN echo @latest https://dl-cdn.alpinelinux.org/alpine/latest-stable/main >> /etc/apk/repositories && \
+    echo @latest https://dl-cdn.alpinelinux.org/alpine/latest-stable/community >> /etc/apk/repositories && \
+    echo @14.20.1 https://dl-cdn.alpinelinux.org/alpine/v3.14/main >> /etc/apk/repositories
+
+# Install dependencies
+RUN apk --no-cache --update add \
+    libsrt@latest \
+    chromium@latest \
+    firefox@latest
+
+RUN adduser -D -g users user
+
+RUN mkdir -p /home/user \
+    && chown user:users /home/user
+
+RUN apk update \
+    && apk add --no-cache --update xvfb x11vnc fluxbox xdpyinfo st vim terminus-font xterm xeyes htop sudo \
+    && sed -r -i "s/\[exec\] \(xterm\) \{xterm\}/\[exec\] \(st\) \{st -f 'xos4 Terminus-14'\}/" /usr/share/fluxbox/menu \
+    && mkdir -p /opt \
+    && rm -vrf /var/cache/apk/*
+
+# install rust
+
+ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo PATH=/usr/local/cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+RUN /bin/sh -c set -eux; \
+    apkArch="$(apk --print-arch)"; \
+    echo $apkArch; \
+    case "$apkArch" in \
+    x86_64) rustArch='x86_64-unknown-linux-musl' ;; \
+    aarch64) rustArch='aarch64-unknown-linux-musl' ;; \
+    *) echo >&2 "unsupported architecture: $apkArch"; exit 1 ;; \
+    esac; 
+
+    
+
+RUN wget "https://static.rust-lang.org/rustup/dist/x86_64/rustup-init"  
+
+RUN chmod +x rustup-init;   && \
+    /rustup-init -y --no-modify-path --default-toolchain nightly;  && \
+    rm rustup-init; && \
+    chmod -R a+w $RUSTUP_HOME $CARGO_HOME;   && \
+    rustup --version; && \
+    cargo --version; && \
+    rustc --version;        
+
+COPY bootstrap.sh /opt
+
+USER user
+ENV HOME /home/user
+WORKDIR /home/user
+CMD ["sh","/opt/bootstrap.sh"]
+# CMD ["/bin/sh -c set -eux","/opt/bootstrap.sh"]
