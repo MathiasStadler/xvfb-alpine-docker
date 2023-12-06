@@ -1,10 +1,13 @@
 {
     "cSpell.words": [
         "aarch",
+        "aboutwelcome",
         "adduser",
         "esac",
+        "firstrun",
         "fluxbox",
         "libsrt",
+        "nofirstrun",
         "rustc",
         "vncviewer",
         "WORKDIR",

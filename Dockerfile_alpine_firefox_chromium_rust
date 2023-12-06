@@ -2,8 +2,8 @@ FROM alpine:3.18.5
 
 # install rust
 RUN apk add --no-cache \
-        ca-certificates \
-        gcc
+    ca-certificates \
+    gcc
 
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
@@ -13,9 +13,9 @@ ENV RUSTUP_HOME=/usr/local/rustup \
 RUN set -eux; \
     apkArch="$(apk --print-arch)"; \
     case "$apkArch" in \
-        x86_64) rustArch='x86_64-unknown-linux-musl'; rustupSha256='7aa9e2a380a9958fc1fc426a3323209b2c86181c6816640979580f62ff7d48d4' ;; \
-        aarch64) rustArch='aarch64-unknown-linux-musl'; rustupSha256='b1962dfc18e1fd47d01341e6897cace67cddfabf547ef394e8883939bd6e002e' ;; \
-        *) echo >&2 "unsupported architecture: $apkArch"; exit 1 ;; \
+    x86_64) rustArch='x86_64-unknown-linux-musl'; rustupSha256='7aa9e2a380a9958fc1fc426a3323209b2c86181c6816640979580f62ff7d48d4' ;; \
+    aarch64) rustArch='aarch64-unknown-linux-musl'; rustupSha256='b1962dfc18e1fd47d01341e6897cace67cddfabf547ef394e8883939bd6e002e' ;; \
+    *) echo >&2 "unsupported architecture: $apkArch"; exit 1 ;; \
     esac; \
     url="https://static.rust-lang.org/rustup/archive/1.26.0/${rustArch}/rustup-init"; \
     wget "$url"; \
@@ -45,12 +45,29 @@ RUN echo @latest https://dl-cdn.alpinelinux.org/alpine/latest-stable/main >> /et
 RUN apk --no-cache --update add     libsrt@latest     chromium@latest     firefox@latest
 
 
-RUN adduser -D -g users user
+# RUN adduser -D -g users user
+RUN adduser --disabled-password --gecos '' user
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 RUN mkdir -p /home/user 	&& chown user:users /home/user
 
-RUN apk update 	&& apk add --no-cache --update xvfb x11vnc fluxbox xdpyinfo st vim terminus-font xterm xeyes htop sudo 	&& sed -r -i "s/\[exec\] \(xterm\) \{xterm\}/\[exec\] \(st\) \{st -f 'xos4 Terminus-14'\}/" /usr/share/fluxbox/menu 	&& mkdir -p /opt 	&& rm -vrf /var/cache/apk/*
+RUN apk update 	&& \
+    apk add --no-cache --update xvfb \
+    x11vnc \
+    fluxbox \
+    xdpyinfo \
+    st \
+    vim \
+    terminus-font \
+    xterm \ 
+    xeyes \
+    htop \
+    sudo \
+    && sed -r -i "s/\[exec\] \(xterm\) \{xterm\}/\[exec\] \(st\) \{st -f 'xos4 Terminus-14'\}/" /usr/share/fluxbox/menu 	 \
+    && mkdir -p /opt  \
+    && rm -vrf /var/cache/apk/*
 
 COPY bootstrap.sh /opt
+COPY .docker/files/firefox/autoconfig.js /usr/lib/firefox/defaults/pref/autoconfig.js
 
 USER user
 ENV HOME /home/user
@@ -65,3 +82,6 @@ CMD ["sh","/opt/bootstrap.sh"]
 # xhost +
 # vncviewer $(docker inspect -f \
 # '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps --format "{{.ID}}" | cut -d " " -f1))
+#
+# user root
+# docker exec --user root -it 8918a9963841 /bin/ash
