@@ -7,7 +7,9 @@ FROM alpine:3.18.5
 
 # RUN apk update
 
-RUN echo @latest https://dl-cdn.alpinelinux.org/alpine/latest-stable/main >> /etc/apk/repositories &&     echo @latest https://dl-cdn.alpinelinux.org/alpine/latest-stable/community >> /etc/apk/repositories &&     echo @14.20.1 https://dl-cdn.alpinelinux.org/alpine/v3.14/main >> /etc/apk/repositories
+RUN echo @latest https://dl-cdn.alpinelinux.org/alpine/latest-stable/main >> /etc/apk/repositories &&  \
+    echo @latest https://dl-cdn.alpinelinux.org/alpine/latest-stable/community >> /etc/apk/repositories && \
+    echo @14.20.1 https://dl-cdn.alpinelinux.org/alpine/v3.14/main >> /etc/apk/repositories
 
 # Install dependencies
 RUN apk --no-cache --update add     libsrt@latest     chromium@latest     firefox@latest
@@ -24,3 +26,11 @@ USER user
 ENV HOME /home/user
 WORKDIR /home/user
 CMD ["sh","/opt/bootstrap.sh"]
+
+
+# docker build  --progress=plain --tag alpine-browser:latest  -f Dockerfile_alpine_firefox_chromium "."
+# docker run --rm -it alpine-browser:latest
+#
+# export DISPLAY=:0
+# xhost +
+# vncviewer $(docker inspect -f  '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps --format "{{.ID}}" | cut -d " " -f1))

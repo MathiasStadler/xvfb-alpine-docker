@@ -1,0 +1,67 @@
+FROM alpine:3.18.5
+
+# install rust
+RUN apk add --no-cache \
+        ca-certificates \
+        gcc
+
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=/usr/local/cargo/bin:$PATH \
+    RUST_VERSION=1.74.0
+
+RUN set -eux; \
+    apkArch="$(apk --print-arch)"; \
+    case "$apkArch" in \
+        x86_64) rustArch='x86_64-unknown-linux-musl'; rustupSha256='7aa9e2a380a9958fc1fc426a3323209b2c86181c6816640979580f62ff7d48d4' ;; \
+        aarch64) rustArch='aarch64-unknown-linux-musl'; rustupSha256='b1962dfc18e1fd47d01341e6897cace67cddfabf547ef394e8883939bd6e002e' ;; \
+        *) echo >&2 "unsupported architecture: $apkArch"; exit 1 ;; \
+    esac; \
+    url="https://static.rust-lang.org/rustup/archive/1.26.0/${rustArch}/rustup-init"; \
+    wget "$url"; \
+    echo "${rustupSha256} *rustup-init" | sha256sum -c -; \
+    chmod +x rustup-init; \
+    ./rustup-init -y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION --default-host ${rustArch}; \
+    rm rustup-init; \
+    chmod -R a+w $RUSTUP_HOME $CARGO_HOME; \
+    rustup --version; \
+    cargo --version; \
+    rustc --version;
+
+
+
+# for firefox
+# RUN apk add http://dl-cdn.alpinelinux.org/alpine/edge/community
+
+# RUN apk add firefox-esr
+
+# RUN apk update
+
+RUN echo @latest https://dl-cdn.alpinelinux.org/alpine/latest-stable/main >> /etc/apk/repositories &&  \
+    echo @latest https://dl-cdn.alpinelinux.org/alpine/latest-stable/community >> /etc/apk/repositories && \
+    echo @14.20.1 https://dl-cdn.alpinelinux.org/alpine/v3.14/main >> /etc/apk/repositories
+
+# Install dependencies
+RUN apk --no-cache --update add     libsrt@latest     chromium@latest     firefox@latest
+
+
+RUN adduser -D -g users user
+RUN mkdir -p /home/user 	&& chown user:users /home/user
+
+RUN apk update 	&& apk add --no-cache --update xvfb x11vnc fluxbox xdpyinfo st vim terminus-font xterm xeyes htop sudo 	&& sed -r -i "s/\[exec\] \(xterm\) \{xterm\}/\[exec\] \(st\) \{st -f 'xos4 Terminus-14'\}/" /usr/share/fluxbox/menu 	&& mkdir -p /opt 	&& rm -vrf /var/cache/apk/*
+
+COPY bootstrap.sh /opt
+
+USER user
+ENV HOME /home/user
+WORKDIR /home/user
+CMD ["sh","/opt/bootstrap.sh"]
+
+
+# docker build  --progress=plain --tag alpine-browser-rust:latest  -f Dockerfile_alpine_firefox_chromium_rust "."
+# docker run --rm -it alpine-browser-rust:latest
+#
+# export DISPLAY=:0
+# xhost +
+# vncviewer $(docker inspect -f \
+# '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps --format "{{.ID}}" | cut -d " " -f1))
