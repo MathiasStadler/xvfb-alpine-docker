@@ -85,3 +85,7 @@ CMD ["sh","/opt/bootstrap.sh"]
 #
 # user root
 # docker exec --user root -it 8918a9963841 /bin/ash
+#
+#run container 
+#docker run --rm -it alpine-browser-rust:latest
+# start vnc or shell
