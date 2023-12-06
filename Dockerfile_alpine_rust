@@ -1,11 +1,11 @@
 #[FROM HERE](https://github.com/rust-lang/docker-rust/blob/c9d5ef80a065e00761652951a22064f0134614aa/1.74.0/alpine3.17/Dockerfile)
 
 #FROM alpine:3.17
-FROM alpine:3.18.5 
+FROM alpine:3.18.5 as builder
 
 RUN apk add --no-cache \
-        ca-certificates \
-        gcc
+    ca-certificates \
+    gcc
 
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
@@ -15,19 +15,32 @@ ENV RUSTUP_HOME=/usr/local/rustup \
 RUN set -eux; \
     apkArch="$(apk --print-arch)"; \
     case "$apkArch" in \
-        x86_64) rustArch='x86_64-unknown-linux-musl'; rustupSha256='7aa9e2a380a9958fc1fc426a3323209b2c86181c6816640979580f62ff7d48d4' ;; \
-        aarch64) rustArch='aarch64-unknown-linux-musl'; rustupSha256='b1962dfc18e1fd47d01341e6897cace67cddfabf547ef394e8883939bd6e002e' ;; \
-        *) echo >&2 "unsupported architecture: $apkArch"; exit 1 ;; \
-    esac; \
-    url="https://static.rust-lang.org/rustup/archive/1.26.0/${rustArch}/rustup-init"; \
-    wget "$url"; \
-    echo "${rustupSha256} *rustup-init" | sha256sum -c -; \
-    chmod +x rustup-init; \
-    ./rustup-init -y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION --default-host ${rustArch}; \
-    rm rustup-init; \
-    chmod -R a+w $RUSTUP_HOME $CARGO_HOME; \
+    x86_64) rustArch='x86_64-unknown-linux-musl'; rustupSha256='7aa9e2a380a9958fc1fc426a3323209b2c86181c6816640979580f62ff7d48d4' ;; \
+    aarch64) rustArch='aarch64-unknown-linux-musl'; rustupSha256='b1962dfc18e1fd47d01341e6897cace67cddfabf547ef394e8883939bd6e002e' ;; \
+    *) echo >&2 "unsupported architecture: $apkArch"; exit 1 ;; \
+    esac; 
+
+RUN url="https://static.rust-lang.org/rustup/archive/1.26.0/x86_64-unknown-linux-musl/rustup-init"; \
+    wget "$url"; 
+
+RUN echo "7aa9e2a380a9958fc1fc426a3323209b2c86181c6816640979580f62ff7d48d4 *rustup-init" | | sha256sum -c -;  
+
+RUN chmod -R a+w $RUSTUP_HOME $CARGO_HOME; \
     rustup --version; \
     cargo --version; \
     rustc --version;
+
+
+FROM alpine:3.18.5 as runtime
+
+RUN mkdir /usr/local/cargo
+COPY --from=builder /usr/local/cargo /usr/local/cargo
+# FROM HERE
+# https://www.numbersandreality.com/computers/linux/rust-lang-on-alpine/#2-getting-rust
+RUN cargo new hello
+WORKDIR ./hello
+# RUN RUSTFLAGS="-C linker=clang -C link-arg=-fuse-ld=lld" cargo build
+RUN cargo build
+
 
 # docker build  --progress=plain --tag alpine-rust:latest  -f Dockerfile_alpine_rust "."
