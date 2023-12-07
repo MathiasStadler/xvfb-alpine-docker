@@ -30,20 +30,44 @@ RUN set -eux; \
 
 
 
-# for firefox
-# RUN apk add http://dl-cdn.alpinelinux.org/alpine/edge/community
+# for firefox and chromium
 
-# RUN apk add firefox-esr
-
-# RUN apk update
 
 RUN echo @latest https://dl-cdn.alpinelinux.org/alpine/latest-stable/main >> /etc/apk/repositories &&  \
     echo @latest https://dl-cdn.alpinelinux.org/alpine/latest-stable/community >> /etc/apk/repositories && \
-    echo @14.20.1 https://dl-cdn.alpinelinux.org/alpine/v3.14/main >> /etc/apk/repositories
+    # update of 3.19
+    # echo @14.20.1 https://dl-cdn.alpinelinux.org/alpine/v3.14/main >> /etc/apk/repositories
+    echo @14.20.1 https://dl-cdn.alpinelinux.org/alpine/v3.19/main >> /etc/apk/repositories
 
 # Install dependencies
-RUN apk --no-cache --update add     libsrt@latest     chromium@latest     firefox@latest
+RUN apk --no-cache --update add libsrt@latest chromium@latest firefox@latest unzip
+RUN apk --update --upgrade add chromium firefox chromium-chromedriver
 
+# Set up Chromedriver Environment variables
+ENV CHROMEDRIVER_VERSION 2.19
+ENV CHROMEDRIVER_DIR /chromedriver
+RUN mkdir $CHROMEDRIVER_DIR
+
+# Download and install Chromedriver
+RUN wget -q --continue -P $CHROMEDRIVER_DIR "http://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
+RUN unzip $CHROMEDRIVER_DIR/chromedriver* -d $CHROMEDRIVER_DIR
+
+# To get GeckoDriver running on Alpine
+# FROM HERE
+# https://stackoverflow.com/questions/58738920/running-geckodriver-in-an-alpine-docker-container
+# Get all the prereqs
+RUN set -eux; \
+    wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub && \
+    wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.35-r1/glibc-2.35-r1.apk && \
+    wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.35-r1/glibc-bin-2.35-r1.apk && \
+    apk add glibc-2.35-r1.apk && \
+    apk add glibc-bin-2.35-r1.apk && \
+    # And of course we need Firefox if we actually want to *use* GeckoDriver
+    # apk add firefox-esr=60.9.0-r0 && \
+    # Then install GeckoDriver
+    wget https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-linux64.tar.gz && \
+    tar -zxf geckodriver-v0.33.0-linux64.tar.gz -C /usr/bin && \
+    geckodriver --version
 
 # RUN adduser -D -g users user
 RUN adduser --disabled-password --gecos '' user
